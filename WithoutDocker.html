@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' href='github-markdown.css'>
+    <style>
+	.markdown-body {
+		box-sizing: border-box;
+		min-width: 200px;
+		max-width: 980px;
+		margin: 0 auto;
+		padding: 45px;
+	}
+
+	@media (max-width: 767px) {
+		.markdown-body {
+			padding: 15px;
+		}
+	}
+    </style>
+    </head>
+    <body class="markdown-body"><h1 id="dockersansdocker">Docker sans Docker</h1>
+<p>A l'aide du mécanisme de namespace de Linux, il est possible de controller
+les resources visibles d'un processus et de l'isoler encore un peu plus.</p>
+<p>Les namespaces sont organisés sous forme d'arbre, un namespace hérite
+(dans la plupart des cas) des propriétés de leur parent.</p>
+<p>La commande <code>unshare</code> permet de controller la création de namespaces
+lors de la création d'un processus (<code>man unshare</code> pour un exemple 
+d'utilisation). En fonction des options les droits root peuvent être
+nécessaires (l'option <code>--map-root-user</code> permet généralement de s'en passer).</p>
+<p>Par exemple pour lancer un shell complètement isolé de ses namespaces
+parents :</p>
+<pre><code>% unshare --mount --uts --ipc --net --pid --fork --user --map-root-user bash
+</code></pre>
+<p>Sous le capot, la commande <code>unshare</code> utilise l'appel système <a href="http://man7.org/linux/man-pages/man2/clone.2.html"><code>clone</code></a>,
+similaire à <code>fork</code>, mais qui permet de controller la création de nouveaux namespaces.</p>
+<p><img src="namespaces.png" alt="UTS Namepace" /></p>
+<p><code>proc1</code> et <code>proc2</code> partage le namespace UTS par défaut. Par contre <code>proc3</code>
+dispose de son propre namespace, il peut modifier les propriétés associées
+à ce namespace sans que les effets soient visibles des autres processus.</p>
+<h2 id="lenamespaceuts">Le namespace UTS</h2>
+<p>Le namespace UTS permet d'isoler les noms de machine et de domaine
+(hostname et domainname).</p>
+<p>Essayer de changer le nom de la machine dans un shell possédant un nouveau 
+namespace UTS et vérifié que le namespace racine n'est pas impacté.
+Utiliser la commande <code>hostname</code> pour voir et changer le nom de machine.</p>
+<pre><code>% sudo unshare --uts bash
+</code></pre>
+<h2 id="lenamespacepid">Le namespace PID</h2>
+<p>Le namespace PID permet d'avoir une numérotation des processus distincte de
+celle de son namespace parent.</p>
+<pre><code>% unshare --fork --pid bash
+% echo $$
+% ps aux
+</code></pre>
+<p>Remarquer que la valeur <code>$$</code> (PID du shell courant) vaut bien 1,
+par contre la commande <code>ps</code> donne une valeur bien différente. En fait
+la commande ps utilise le système de fichier <code>/proc</code> pour afficher le
+listing des processus, qui est toujours celui du namespace racine.
+Il est possible d'utiliser l'option <code>--mount-proc</code> qui montera le
+système de fichier <code>/proc</code> correspondant au nouveau namespace PID
+(cela créer aussi un namespace de type mount, mais plus la dessus
+tout de suite après).</p>
+<pre><code>% unshare --fork --pid --mount-proc bash
+% echo $$
+% ps aux
+</code></pre>
+<p>Magie ! Seuls les processus enfants du shell sont maintenant affichés.
+avec la numérotation propre au namespace courant.</p>
+<h2 id="lenamespacemount">Le namespace mount</h2>
+<p>Le namespace mount permet (comme son nom l'indique) d'avoir des montages
+de systèmes de fichiers distinct du namespace parent.</p>
+<p>Désarchiver <code>busybox.tar.gz</code> :</p>
+<pre><code>% tar xvfz busybox.tar.gz
+</code></pre>
+<p>Lancé un shell avec un namespace mount isolé et vérifier que le nouveau
+montage n'est visible que du shell:</p>
+<pre><code>% unshare --mount bash
+% mount -o bind busybox /mnt
+% ls /mnt
+</code></pre>
+<p>Si l'on veut que le répertoire <code>busybox</code> soit le
+répertoire racine du shell, il faut utiliser la bonne vielle commande 
+<code>chroot</code> (ou <code>pivot_root</code>) :</p>
+<pre><code>% unshare -r chroot busybox sh
+</code></pre>
+<p>Le namespace mount permet simplement de rendre local au namespace toute
+manipulation de montage avec la commande <code>mount</code>.</p>
+<h2 id="lenamespacenet">Le namespace net</h2>
+<p>Le namespace net permet d'isoler l'ensemble des fonctionnalités réseau :</p>
+<ul>
+<li>les interfaces réseau (<code>ifconfig</code> ou <code>ip</code>)</li>
+<li>la table de routage (<code>route</code>)</li>
+<li>la configuration du firewall (<code>iptables</code>)</li>
+</ul>
+<p>Shell 1:</p>
+<pre><code>% unshare -r -n bash
+% ifconfig -a
+% echo $$
+</code></pre>
+<p>Le nouveau namespace dispose d'une seule interface de type loopback 
+désactivée. Il n'est pas possible d'y ajouter des interfaces physiques,
+mais on peut y ajouter des interfaces virtuelles de type veth. Ce
+type d'interface fonctionne comme un <em>pipe</em> où chaque extrémité est
+une interface réseau.</p>
+<p>Shell 2:</p>
+<pre><code>% sudo ip link add veth0 type veth peer name eth0 netns ${PID_du_bash}
+% sudo ifconfig veth0 10.1.1.1/24 up
+</code></pre>
+<p>Les interfaces sont crées par paire, <code>veth0</code> est placée dans le namespace par 
+défaut tandis que <code>eth0</code> est placée dans le namespace net du processus dont
+le PID est donné en paramètre.</p>
+<p>Shell 1:</p>
+<pre><code>% ifconfig -a
+% ifconfig eth0 10.1.1.2/24 up
+% ping 10.1.1.1
+% python -m SimpleHTTPServer
+</code></pre>
+<p>La nouvelle interface <code>eth0</code> est maintenant visible dans le shell isolé
+et est configurable avec une IP et un masque.</p>
+<p>Shell 2 (ou dans un navigateur):</p>
+<pre><code>% route -n
+% curl http://10.1.1.2:8000
+</code></pre>
+<p>Le service déployé dans le shell isolé est accessible au travers de
+l'interface <code>veth0</code> car une route est automatiquement créée pour le 
+sous-réseau <code>10.1.1.0</code>.</p>
+<h2 id="autresnamespaces">Autres namespaces</h2>
+<ul>
+<li>IPC</li>
+<li>user</li>
+<li>cgroup</li>
+</ul>
+<h1 id="conclusion">Conclusion</h1>
+<p>Les fonctionnalités d'isolation de processus sont directement
+fournit par le noyaux sans outils supplémentaires. Mais l'isolation
+directe à partir de namespaces est extrêmement compliqué à configurer,
+les gestionnaires de conteneurisation (LXC, Docker, rt) permettent de 
+grandement simplifier ce travail.</p>
+<h1 id="liens">Liens</h1>
+<ul>
+<li><p><a href="http://billauer.co.il/blog/2015/07/linux-namespaces-unshare/">Introduction au namespaces Linux</a></p></li>
+<li><p><a href="https://ilearnedhowto.wordpress.com/tag/unshare/">Docker without Docker</a></p></li>
+<li><p><a href="https://blog.scottlowe.org/2013/09/04/introducing-linux-network-namespaces/">Network NS</a></p></li>
+</ul>
+<h2 id="suivantdockerhtml"><a href="Docker.html">Suivant</a></h2></body></html>

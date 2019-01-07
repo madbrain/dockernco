@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' href='github-markdown.css'>
+    <style>
+	.markdown-body {
+		box-sizing: border-box;
+		min-width: 200px;
+		max-width: 980px;
+		margin: 0 auto;
+		padding: 45px;
+	}
+
+	@media (max-width: 767px) {
+		.markdown-body {
+			padding: 15px;
+		}
+	}
+    </style>
+    </head>
+    <body class="markdown-body"><h1 id="introduction">Introduction</h1>
+<p>Docker et la conteneurisation sont souvent comparés à la virtualisation 
+(VMWare, etc.),
+mais les différences sont, à y regarder de plus près, bien plus nombreuses
+que les ressemblances.</p>
+<p><img src="compare-container-virtualizer.png" alt="Comparaison conteneur/VM" /></p>
+<p>Dans le cas de la virtualisation, l'objectif est de faire croire à un OS
+qu'il dispose d'une machine (CPU, RAM, périphériques) pour lui seul.
+L'OS est un véritable OS qui va, au travers de son noyau, prendre en charge
+totalement la machine et fournir des services de gestion
+de la mémoire et du CPU sous la forme de processus.</p>
+<p>Dans le cas de la conteneurisation, l'objectif est ici de faire croire à un
+ou plusieurs processus qu'ils sont seuls à s'exécuter sur un OS.
+C'est finalement pas la machine mais l'OS qui est virtualisé.</p>
+<p>En quoi un gestionnaire de conteneurs aide à isoler les processus ?
+Est ce que l'OS n'isole pas déjà les processus entre eux ?
+Par exemple, est ce qu'un processus peux écrire dans la mémoire d'un autre
+processus ?</p>
+<p><img src="address-space.png" alt="Espace d'adressage" /></p>
+<p>Avec un OS moderne, c'est bien évidemment impossible, la mémoire est 
+virtualisée directement par le processeur (et son <a href="https://en.wikipedia.org/wiki/Memory_management_unit">MMU</a>), chaque processus ne
+peut accéder qu'à la mémoire qui lui est allouée. La virtualisation de la 
+mémoire permet également d'empêcher un processus d'accéder directement au 
+matériel qui est généralement accessible au travers de registres dans 
+l'espace d'adressage physique du processeur.</p>
+<p><img src="system-call.png" alt="Appel système" /></p>
+<p>L'ensemble de la communication d'un processus avec le monde extérieur se
+fait par l'intermédiaire d'appels systèmes, qui font sauter l'exécution du
+processus de son espace d'adressage à celui du noyau. La vision qu'à un
+processus des différentes ressources qu'il accède aux travers des appels
+systèmes (réseau, fichiers, etc.) peut aussi être virtualisée.</p>
+<p>Sous Linux cela se fait principalement à l'aide du mécanisme de
+<a href="https://en.wikipedia.org/wiki/Linux_namespaces">namespaces</a>.</p>
+<h2 id="suivantwithoutdockerhtml"><a href="WithoutDocker.html">Suivant</a></h2></body></html>
