@@ -74,7 +74,7 @@ avec la numérotation propre au namespace courant.
 Le namespace mount permet (comme son nom l'indique) d'avoir des montages
 de systèmes de fichiers distinct du namespace parent.
 
-Désarchiver `busybox.tar.gz` :
+Désarchiver [`busybox.tar.gz`](data/busybox.tar.gz) :
 ```
 % tar xvfz busybox.tar.gz
 ```
@@ -163,12 +163,10 @@ directe à partir de namespaces est extrêmement compliqué à configurer,
 les gestionnaires de conteneurisation (LXC, Docker, rt) permettent de 
 grandement simplifier ce travail.
 
-# Liens
+# Sources
 
 * [Introduction au namespaces Linux](http://billauer.co.il/blog/2015/07/linux-namespaces-unshare/)
 
 * [Docker without Docker](https://ilearnedhowto.wordpress.com/tag/unshare/)
 
 * [Network NS](https://blog.scottlowe.org/2013/09/04/introducing-linux-network-namespaces/)
-
-## [Suivant](Docker.html)

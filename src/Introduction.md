@@ -42,5 +42,3 @@ systèmes (réseau, fichiers, etc.) peut aussi être virtualisée.
 
 Sous Linux cela se fait principalement à l'aide du mécanisme de
 [namespaces](https://en.wikipedia.org/wiki/Linux_namespaces).
-
-## [Suivant](WithoutDocker.html)
