@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' href='github-markdown.css'>
+    <style>
+	.markdown-body {
+		box-sizing: border-box;
+		min-width: 200px;
+		max-width: 980px;
+		margin: 0 auto;
+		padding: 45px;
+	}
+
+	@media (max-width: 767px) {
+		.markdown-body {
+			padding: 15px;
+		}
+	}
+    </style>
+    </head>
+    <body class="markdown-body"><h1 id="kubernetes">Kubernetes</h1>
+<h2 id="kubelet">Kubelet</h2>
+<pre><code>wget https://storage.googleapis.com/kubernetes-release/release/v1.7.6/bin/linux/amd64/kubelet
+chmod +x kubelet
+</code></pre>
+<pre><code>sudo ./kubelet --pod-manifest-path=$PWD/manifests/ --root-dir=$PWD/root
+</code></pre>
+<h2 id="apiserver">Apiserver</h2>
+<pre><code>mkdir etcd-data
+docker run -d \
+    -v $PWD/etcd-data:/default.etcd \
+    --net=host \
+    --name=etcd-container \
+    quay.io/coreos/etcd
+</code></pre>
+<pre><code>export ETCDCTL_API=3
+etcdctl get --prefix "" --keys-only
+</code></pre>
+<p>password.txt</p>
+<pre><code>secret,joe,1000,"users"
+secret,john,1001,"users,admin"
+</code></pre>
+<pre><code>./kube-apiserver \
+  --etcd-servers=http://127.0.0.1:2379 \
+  --service-cluster-ip-range=10.0.0.0/16 \
+  --cert-dir=$PWD/certs \
+  --authorization-mode=RBAC \
+  --basic-auth-file=$PWD/password.txt
+</code></pre>
+<h2 id="kubectl">Kubectl</h2>
+<h2 id="scheduler">Scheduler</h2>
+<h1 id="sources">Sources</h1>
+<ul>
+<li><p><a href="https://jvns.ca/blog/2017/06/04/learning-about-kubernetes/">Kubernetes High Level Overview</a></p></li>
+<li><p><a href="http://kamalmarhubi.com/blog/2015/08/27/what-even-is-a-kubelet/">Kubernetes Components Part 1</a></p></li>
+<li><p><a href="http://kamalmarhubi.com/blog/2015/09/06/kubernetes-from-the-ground-up-the-api-server/">Kubernetes Components Part 2</a></p></li>
+<li><p><a href="http://kamalmarhubi.com/blog/2015/11/17/kubernetes-from-the-ground-up-the-scheduler/">Kubernetes Components Part 3</a></p></li>
+</ul></body></html>
