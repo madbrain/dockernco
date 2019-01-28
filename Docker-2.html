@@ -22,13 +22,116 @@
     </head>
     <body class="markdown-body"><h1 id="dockerpart2">Docker (Part 2)</h1>
 <h2 id="construireuneimage">Construire une image</h2>
+<p>La construction d'une nouvelle image se fait à partir des informations
+contenues dans un fichier spécial <code>Dockerfile</code>. Ce fichier décrit la construction, étape par étape, de l'image. Chaque étape va généralement
+construire une couche du système de fichiers.  </p>
+<p>Chaque ligne du fichier <code>Dockerfile</code> est une commande. Une commande
+démarre par un mot clé (<code>FROM</code>, <code>COPY</code>, <code>RUN</code>, etc.) suivit des arguments
+spécifique à chaque commande. </p>
+<p>Pour commencer créer un nouveau répertoire :</p>
+<pre><code>% mkdir my-app
+% cd my-app
+</code></pre>
+<p>Créer un fichier <code>Dockerfile</code> contenant :</p>
+<pre><code>FROM java:8u111-jdk-alpine 
+</code></pre>
+<p>Lancer la construction de l'image :</p>
+<pre><code>% docker build -t my-app .
+</code></pre>
+<p>Le <code>.</code> indique qu'il faut construire l'image à partir du répertoire courant
+et l'option <code>-t</code> permet de lui donner un nom.</p>
+<p>On peut vérifier que l'image est bien construite en listant les images
+disponible sur la machine :</p>
+<pre><code>% docker images
+</code></pre>
+<p>L'image doit apparaître avec la version <code>latest</code>, il est possible de
+changer la version lors de la construction en changeant la valeur de l'option
+<code>-t</code> avec par exemple <code>my-app:1.0</code>.</p>
+<p>La commande <code>FROM</code> permet d'indiquer l'image de base sur laquelle notre 
+nouvelle image va se baser. Que se passe t-il si l'on essaye de lancer
+un conteneur avec cette nouvelle image ?</p>
+<pre><code>% docker run --rm my-app
+</code></pre>
+<p>L'image de base ne définit pas de commande par défaut, il faut explicitement
+la donner au démarrage du conteneur :</p>
+<pre><code>% docker run -ti --rm my-app sh
+</code></pre>
+<p>Prenez le temps d'inspecter le contenu de l'image:</p>
 <ul>
-<li>constitution d'un Dockerfile</li>
-<li>lancement de la construction</li>
-<li>dépôt de l'image sur un repository</li>
+<li>où se trouve l'exécutable Java ?</li>
+<li>est-il dans le PATH ?</li>
 </ul>
-<h2 id="interactionentreconteneurs">Interaction entre conteneurs</h2>
+<p>Ajouter la ligne suivante à la fin du fichier <code>Dockerfile</code>, reconstruisez
+et lancez un conteneur :</p>
+<pre><code>CMD [ "java", "-version" ]
+</code></pre>
+<p>Le conteneur peut maintenant s'exécuter sans donner explicitement de commande
+et affiche la version de java embarquée dans le conteneur.</p>
+<p>Pour rendre l'image plus utile, on peut lui modifier son contenu, soit avec 
+la commande <code>RUN</code> pour exécuter une commande arbitraire dont le résultat 
+constituera une nouvelle version de l'image, soit avec la commande <code>COPY</code>
+pour ajouter du contenu depuis le répertoire courant dans l'image.
+On peut bien évidemment combiner ces deux commandes :</p>
+<pre><code>FROM java:8u111-jdk-alpine
+RUN mkdir /app
+COPY my-app.jar /app
+CMD [ "java", "-jar", "/app/my-app.jar" ]
+</code></pre>
+<p>L'archive de l'application est disponible ici <a href="data/my-app.jar">my-app.jar</a>.
+Le démarrage d'un conteneur à partir de cette image permet maintenant 
+d'exécuter notre application. Le but de cette application est de fournir 
+une API web sur le port 8080. Pour avertir l'utilisateur que le port 8080
+a une importance particulière, la commande <code>EXPOSE</code> permet de lister
+les ports exposés :</p>
+<pre><code>FROM java:8u111-jdk-alpine
+RUN mkdir /app
+COPY my-app-0.0.1-SNAPSHOT.jar /app
+EXPOSE 8080
+CMD [ "java", "-jar", "/app/my-app-0.0.1-SNAPSHOT.jar" ]
+</code></pre>
+<p>On peut maintenant lancer un conteneur et tester le service :</p>
+<pre><code>% docker run -d --name hello-service -p 8080:8080 my-app
+% curl "http://localhost:8080/api/hello?name=Martin"
+</code></pre>
+<h2 id="remarques">Remarques</h2>
 <ul>
-<li>utilisation de <code>link</code> entre conteneurs</li>
-<li>utilisation de <code>docker-compose</code></li>
+<li><p>On peut remarquer que si l'on lance la commande de construction
+plusieurs fois, seules les étapes de construction nécessaires sont 
+exécutées.
+Chaque commande du fichier Dockerfile produit une couche du système de 
+fichiers de l'image, si une commande et toutes les commandes précédentes
+n'ont pas changées la couche correspondante est réutilisée.</p></li>
+<li><p>Lors de la construction de l'image le contenu intégral du répertoire
+contenant le fichier <code>Dockerfile</code> sera transféré au daemon docker
+avant de démarrer la construction, un volume important de fichiers
+peut mettre un moment à être transféré.  </p></li>
+</ul>
+<h2 id="dptdelimagesuruneregistry">Dépôt de l'image sur une registry</h2>
+<p>Actuellement notre nouvelle image n'est disponible que sur la machine
+locale. Pour pouvoir l'installer et l'exécuter sur d'autre machine,
+le plus simple est de la partager sur une <code>registry</code> externe (DockerHub,
+Artifactory, etc.). Il faut pour cela créer un alias de notre image
+dont le nom est préfixé par le DNS (et optionnellement le port)
+du serveur de la registry, cela se fait avec la commande <code>tag</code> :</p>
+<pre><code>docker tag my-app artifactory.com:8383/my-app:1.0
+</code></pre>
+<p>On peut vérifier que la nouvelle image existe avec la commande <code>images</code> (en 
+fait ce n'est pas une nouvelle image mais comme son nom l'indique un nouveau
+tag sur la même image). L'image peut maintenant être téléversée sur le 
+serveur :</p>
+<pre><code>% docker login artifactory.com:8383
+% docker push artifactory.com:8383/my-app:1.0
+</code></pre>
+<p>Dans l'autre sens, une image peut être téléchargée soit directement avec la 
+commande run (comme nous l'avons fait jusqu'à présent pour les images 
+<code>busybox</code> et <code>nginx</code>) mais seuleuement si l'image n'est pas présente 
+localement. Pour forcer un téléchargement il faut utiliser la commande
+<code>pull</code> :</p>
+<pre><code>% docker pull artifactory.com:8383/my-app:1.0
+</code></pre>
+<h2 id="quiz">Quiz</h2>
+<ul>
+<li>Quelle commande docker permet de construire une nouvelle image ?</li>
+<li>Quel est le nom du fichier décrivant la construction d'une image ?</li>
+<li>Quel mot clé permet de définir la commande par défaut de l'image ?</li>
 </ul></body></html>
