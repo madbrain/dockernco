@@ -142,7 +142,7 @@ On peut maintenant accéder au service à l'URL suivante :
 ### Mapping d'un port réseau
 
 Comme dit précédemment la l'adresse IP du conteneur est uniquement
-accessible depuis la machine hôte uniquement. Docker permet de lier
+accessible depuis la machine hôte. Docker permet de lier
 un port de la machine hôte avec un port du conteneur, le service
 devient accessible depuis partout où la machine hôte est accessible
 mais sur le port associé à la machine hôte. Cette opération d'association
