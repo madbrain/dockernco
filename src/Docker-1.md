@@ -70,7 +70,7 @@ dont un shell.
 Est-ce que l'exécution produit quelque chose ? Quelle est la commande
 lancée dans le conteneur ?
 
-Habituellement lorsqu'on lance un shell il attend que l'on tape
+Habituellement lorsque l'on lance un shell il attend que l'on tape
 des commandes. Mais par défaut Docker ferme l'entrée standard du processus
 lancé. Pour autoriser le processus a recevoir des entrées il faut utiliser 
 l'option `-i` :
