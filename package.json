@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node build.js"
+    "build": "rm -rf built && node build.js && cp -r data build/"
   },
   "author": "",
   "license": "ISC",
