@@ -52,7 +52,7 @@ permet de lister l'ensemble des conteneurs peut importe leur état :</p>
 <p>Vérifier que le nom du conteneur est bien pris en compte.
 Essayer de relancer un conteneur avec le même nom. Est ce possible ?</p>
 <p>Les conteneurs morts commencent à s'accumuler, pour supprimer
-un ou plusieurs conteneur, utiliser la commande suivante :</p>
+un ou plusieurs conteneurs, utiliser la commande suivante :</p>
 <pre><code>% docker rm $NOM_DU_CONTENEUR $ID_DU_CONTENEUR
 </code></pre>
 <p>Il est également possible de supprimer le conteneur automatiquement à la
@@ -67,9 +67,9 @@ est une micro distribution contenant quelques utilitaires standards unix
 dont un shell.</p>
 <pre><code>% docker run busybox
 </code></pre>
-<p>Est ce que l'exécution produit quelque chose ? Quelle est la commande
+<p>Est-ce que l'exécution produit quelque chose ? Quelle est la commande
 lancée dans le conteneur ?</p>
-<p>Habituellement lorsque que l'on lance un shell il attend que l'on tape
+<p>Habituellement lorsque l'on lance un shell il attend que l'on tape
 des commandes. Mais par défaut Docker ferme l'entrée standard du processus
 lancé. Pour autoriser le processus a recevoir des entrées il faut utiliser 
 l'option <code>-i</code> :</p>
@@ -93,15 +93,15 @@ en l'ajoutant après le nom de l'image :</p>
 <h2 id="lancerunconteneurenmodedaemon">Lancer un conteneur en mode <em>daemon</em></h2>
 <p>Le lancement en mode interactif d'un conteneur n'est pas le seul mode de
 fonctionnement. Le principal mode de fonctionnement est le fonctionnement
-en mode <em>daemon</em>, c'est à dire que une fois lancer le conteneur rend 
-immédiatement a main mais continu de s'exécuter en tâche de fond.
-Un conteneur en mode daemon se lance avec l'option <code>-d</code> :</p>
+en mode <em>daemon</em>, c'est à dire que une fois lancé le conteneur rend 
+immédiatement la main mais continu de s'exécuter en tâche de fond.
+Un conteneur en mode <em>daemon</em> se lance avec l'option <code>-d</code> :</p>
 <pre><code>% docker run -d nginx
 </code></pre>
 <p>Vérifier que le conteneur est en cour d'exécution avec la commande <code>ps</code>.</p>
-<p>Le conteneur peut être stopper ou démarrer avec les commandes <code>stop</code> et
+<p>Le conteneur peut être stoppé ou démarré avec les commandes <code>stop</code> et
 <code>start</code> respectivement.</p>
-<p>Un conteneur lancer en tâche de fond sert généralement fournir un service 
+<p>Un conteneur lancé en tâche de fond sert généralement à fournir un service 
 par l'intermédiaire d'une connexion réseau (TCP, HTTP, etc.). Par défaut,
 chaque conteneur est équipé d'une interface réseau spécifique (voir la 
 première partie sur le namespace net), cette interface dispose d'une
@@ -119,7 +119,7 @@ l'option <code>-f</code> et extraire uniquement le(s) champs intéressant(s) :</
 </code></pre>
 <h2 id="configurerlecontextedexcutionduconteneur">Configurer le contexte d'exécution du conteneur</h2>
 <h3 id="mappingdunportrseau">Mapping d'un port réseau</h3>
-<p>Comme dit précédemment la l'adresse IP du conteneur est uniquement
+<p>Comme dit précédemment l'adresse IP du conteneur est uniquement
 accessible depuis la machine hôte. Docker permet de lier
 un port de la machine hôte avec un port du conteneur, le service
 devient accessible depuis partout où la machine hôte est accessible
@@ -132,7 +132,7 @@ hôte (et donc probablement depuis un navigateur):</p>
 <pre><code>curl http://${ADRESSE_IP_HOTE}:8080/
 </code></pre>
 <h3 id="montagedevolumesexternes">Montage de volumes externes</h3>
-<p>La page HTML servit est un page par défaut, on aimerait la modifier
+<p>La page HTML servit est une page par défaut, on aimerait la modifier
 pour servir un contenu avec plus de valeurs ajoutées.
 La technique la plus simple
 pour le faire est de rendre visible un répertoire de la machine hôte
@@ -140,7 +140,7 @@ dans le conteneur à un point de montage défini (on pourrait également
 modifier l'image du conteneur, mais c'est pour plus tard…).
 L'option <code>-v</code> permet de controller le montage de répertoire dans le conteneur.</p>
 <p>Mais à quel endroit monter le répertoire dans le conteneur
-pour qu'il soit servir par nginx ?</p>
+pour qu'il soit servi par nginx ?</p>
 <p>Il serait intéressant de pouvoir observer la configuration de nginx
 à l'intérieur du conteneur et ainsi monter le contenu HTML au bon endroit.</p>
 <p>Pour cela Docker nous donne la possibilité d'exécuter une commande à
