@@ -21,7 +21,19 @@
     </style>
     </head>
     <body class="markdown-body"><h1 id="kubernetes">Kubernetes</h1>
+<p>Comme vu précédemment <code>docker-compose</code> permet d'orchestrer des services,
+mais seulement sur une seule machine hôte. La solution <em>de facto</em> pour
+gérer des conteneurs sur plusieurs machines hôtes (cluster) est <code>Kubernetes</code>.</p>
+<p>Kubernetes est formé de multiples composants interagissant ensemble :</p>
+<ul>
+<li><code>kubelet</code></li>
+<li><code>apiserver</code></li>
+<li><code>scheduler</code></li>
+<li>etc.</li>
+</ul>
 <h2 id="kubelet">Kubelet</h2>
+<p>kubelet est un agent installé sur chaque machine hôte. Il est responsable
+du cycle de vie des conteneur qui lui sont attribué.</p>
 <pre><code>wget https://storage.googleapis.com/kubernetes-release/release/v1.7.6/bin/linux/amd64/kubelet
 chmod +x kubelet
 </code></pre>

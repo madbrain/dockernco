@@ -21,8 +21,65 @@
     </style>
     </head>
     <body class="markdown-body"><h2 id="interactionentreconteneurs">Interaction entre conteneurs</h2>
-<ul>
-<li>utilisation de <code>link</code> entre conteneurs<ul>
-<li>nginx =&gt; api spring boot</li></ul></li>
-<li>utilisation de <code>docker-compose</code></li>
-</ul></body></html>
+<p>La philosophie de Docker est : un service par conteneur. Pour réaliser une 
+application entière, on se retrouve donc à faire interagir plusieurs conteneur
+entre eux.</p>
+<p><img src="nginx-sprinboot.png" alt="Interaction entre conteneurs" /></p>
+<h3 id="loptionlink">L'option <code>--link</code></h3>
+<p>Il faut tout d'abord lancer le conteneur à base de springboot créer 
+précédemment:</p>
+<pre><code>% docker run -d --name backend my-app
+</code></pre>
+<p>Créer le fichier <code>nginx.conf</code> :</p>
+<pre><code>server {
+    listen       80;
+    server_name  localhost;
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html;
+    }
+    location /api {
+        proxy_pass   http://backend:8080/api;
+    }
+}
+</code></pre>
+<p>Et enfin lancer le serveur nginx avec la nouvelle configuration
+et les resources web :</p>
+<pre><code>% docker run -d --name nginx \
+    -v $PWD/nginx.conf:/etc/nginx/conf.d/default.conf \
+    -v $PWD/web:/usr/share/nginx/html \
+    -p 8080:80 \
+    --link backend \
+    nginx
+</code></pre>
+<p>L'option <code>--link $CONTAINER_NAME_OR_ID</code> permet d'initialiser une entrée DNS 
+avec comme IP celle du conteneur lié (en modifiant le fichier <code>/etc/hosts</code>).
+Si l'on souhaite que le l'entrée DNS est un nom différent de celui du 
+conteneur lié, l'option devient <code>--link $CONTAINER_NAME_OR_ID:$DNS_NAME</code>.</p>
+<p>Vérifier la modification du fichier <code>/etc/hosts</code> dans le conteneur.</p>
+<h3 id="dockercompose">Docker Compose</h3>
+<p>Les lignes de commande de lancement des conteneurs commencent à devenir
+de plus en plus complexes et il devient difficile d'automatiser le lancement
+de l'application complète.</p>
+<p><code>docker-compose</code> permet de centraliser les informations des conteneurs de
+l'application et d'automatiser leur démarrage. </p>
+<p>Créer un fichier <code>docker-compose.yml</code> contenant :</p>
+<pre><code>version: '3'
+services:
+  frontend:
+    image: "nginx"
+    volumes:
+     - ./nginx.conf:/etc/nginx/conf.d/default.conf
+     - ./web:/usr/share/nginx/html
+    ports:
+     - "8080:80"
+  backend:
+    image: "my-app"
+</code></pre>
+<p>Puis démarrer les conteneurs avec :</p>
+<pre><code>% docker-compose up -d
+</code></pre>
+<p>L'ensemble des conteneurs démarre automatiquement.</p>
+<p>Comment le nom du backend est-il résolu ? docker-compose utilise <a href="https://docs.docker.com/v17.09/engine/userguide/networking/configure-dns/">une 
+configuration réseau avancée</a> qui lui permet de tirer profit d'un serveur DNS 
+embarqué.</p></body></html>
