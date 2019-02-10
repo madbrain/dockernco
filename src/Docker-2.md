@@ -129,7 +129,7 @@ serveur :
 
 Dans l'autre sens, une image peut être téléchargée soit directement avec la 
 commande run (comme nous l'avons fait jusqu'à présent pour les images 
-`busybox` et `nginx`) mais seuleuement si l'image n'est pas présente 
+`busybox` et `nginx`) mais seulement si l'image n'est pas présente 
 localement. Pour forcer un téléchargement il faut utiliser la commande
 `pull` :
 ```

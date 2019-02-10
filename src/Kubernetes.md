@@ -1,7 +1,20 @@
 
 # Kubernetes
 
+Comme vu précédemment `docker-compose` permet d'orchestrer des services,
+mais seulement sur une seule machine hôte. La solution *de facto* pour
+gérer des conteneurs sur plusieurs machines hôtes (cluster) est `Kubernetes`.
+
+Kubernetes est formé de multiples composants interagissant ensemble :
+- `kubelet`
+- `apiserver`
+- `scheduler`
+- etc.
+
 ## Kubelet
+
+kubelet est un agent installé sur chaque machine hôte. Il est responsable
+du cycle de vie des conteneur qui lui sont attribué.
 
 ```
 wget https://storage.googleapis.com/kubernetes-release/release/v1.7.6/bin/linux/amd64/kubelet
