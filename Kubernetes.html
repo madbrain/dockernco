@@ -33,13 +33,69 @@ gérer des conteneurs sur plusieurs machines hôtes (cluster) est <code>Kubernet
 </ul>
 <h2 id="kubelet">Kubelet</h2>
 <p>kubelet est un agent installé sur chaque machine hôte. Il est responsable
-du cycle de vie des conteneur qui lui sont attribué.</p>
+du cycle de vie des conteneurs qui lui sont attribués.</p>
+<h3 id="installationetlancementenmodestandalone">Installation et lancement en mode <code>Standalone</code></h3>
+<p>Télécharger le binaire de <code>kubelet</code> :</p>
 <pre><code>wget https://storage.googleapis.com/kubernetes-release/release/v1.7.6/bin/linux/amd64/kubelet
 chmod +x kubelet
 </code></pre>
-<pre><code>sudo ./kubelet --pod-manifest-path=$PWD/manifests/ --root-dir=$PWD/root
+<p>Lancer <code>kubelet</code> :</p>
+<pre><code>mkdir manifests
+sudo ./kubelet --pod-manifest-path $PWD/manifests
 </code></pre>
+<p>En fonctionnement normal <code>kubelet</code> a besoin de du composant <code>apiserver</code> pour obtenir 
+les informations sur les conteneurs à déployer. Il est possible de le lancer en mode 
+standalone, les descripteurs sont alors de simples fichiers locaux à la machine.</p>
+<p>L'option <code>--pod-manifest-path</code> permet d'indiquer le répertoire qui contient les
+descripteurs des conteneurs à lancer sur cette machine hôte.
+Le service semble devoir fonctionner avec les droits root, d'où l'invocation avec 
+<code>sudo</code>.</p>
+<h3 id="crationdeconteneurs">Création de conteneurs</h3>
+<p>En fait avec Kubernetes, l'unité de déploiement n'est pas le conteneur mais le <a href="https://kubernetes.io/docs/concepts/workloads/pods/pod-overview/"><code>Pod</code></a>.
+Un Pod est un ensemble de conteneurs partageant les resources réseau et volume,
+mais, sauf cas exceptionnel, on ne mettra qu'un seul conteneur par Pod.</p>
+<p>Pour déployer un Pod, il faut le décrire dans un fichier YAML, puis placer le fichier
+dans le répertoire <code>$PWD/manifests</code>.</p>
+<p>Écrire le fichier <code>nginx.yml</code> et le déplacer dans le répertoire <code>manifests</code> :</p>
+<pre><code>apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - mountPath: /var/log/nginx
+      name: nginx-logs
+  - name: log-truncator
+    image: busybox
+    command:
+    - /bin/sh
+    args: [-c, 'while true; do cat /dev/null &gt; /logdir/access.log; sleep 10; done']
+    volumeMounts:
+    - mountPath: /logdir
+      name: nginx-logs
+  volumes:
+  - name: nginx-logs
+    emptyDir: {}
+</code></pre>
+<p>Constater que les conteneurs ont été créés :</p>
+<pre><code>docker ps
+</code></pre>
+<p>Nous pouvons remarquer que les deux conteneurs au sein du Pod partage le même
+volume. L'option <code>emptyDir</code> indique que le volume sera alloué dynamiquement sur
+la machine hôte.</p>
+<p>Chaque machine hôte d'un cluster Kubernetes fait tourner un processus <code>kubelet</code>
+pour gérer ses propres conteneurs. C'est le service <code>apiserver</code> qui permet de 
+centraliser l'ensemble des informations du cluster, chaque <code>kubelet</code> interroge 
+l'<code>apiserver</code> pour obtenir le travail qui lui est propre.</p>
 <h2 id="apiserver">Apiserver</h2>
+<p>L'<code>apiserver</code> utilise la base de données distribuées <a href="https://coreos.com/etcd/">Etcd</a> 
+pour stocker les données du cluster.</p>
+<p>Lancer une instance de la base de données :</p>
 <pre><code>mkdir etcd-data
 docker run -d \
     -v $PWD/etcd-data:/default.etcd \
@@ -47,22 +103,164 @@ docker run -d \
     --name=etcd-container \
     quay.io/coreos/etcd
 </code></pre>
-<pre><code>export ETCDCTL_API=3
+<p>A tout moment il sera possible de venir voir le contenu de la base de données
+avec les commandes suivantes :</p>
+<pre><code>docker exec -ti etcd-container bash
+export ETCDCTL_API=3
 etcdctl get --prefix "" --keys-only
 </code></pre>
-<p>password.txt</p>
-<pre><code>secret,joe,1000,"users"
-secret,john,1001,"users,admin"
+<h3 id="dmarragedelapiserver">Démarrage de l'API server</h3>
+<p>Télécharger le binaire de <code>apiserver</code> :</p>
+<pre><code>wget https://storage.googleapis.com/kubernetes-release/release/v1.7.6/bin/linux/amd64/apiserver
+chmod +x apiserver
 </code></pre>
-<pre><code>./kube-apiserver \
+<p>Puis lancer une instance du serveur avec la commande suivante :</p>
+<pre><code>sudo ./kube-apiserver \
   --etcd-servers=http://127.0.0.1:2379 \
-  --service-cluster-ip-range=10.0.0.0/16 \
-  --cert-dir=$PWD/certs \
-  --authorization-mode=RBAC \
-  --basic-auth-file=$PWD/password.txt
+  --service-cluster-ip-range=10.0.0.0/16
+</code></pre>
+<p>L'option <code>--service-cluster-ip-range</code> sert à configurer le CIDR utilisé
+par les IP de services, nous ne les utiliserons pas mais l'option est obligatoire.</p>
+<p>On peut vérifier que le serveur est fonctionnel en interrogeant l'API :</p>
+<pre><code>curl http://localhost:8080/api/v1/nodes
+</code></pre>
+<p>Cette API permet de lister les informations relatives aux nœuds du cluster,
+comme on peut s'en douter il n'y en a pas.</p>
+<p>Relacer une instance de <code>kubelet</code> avec l'option suivante :</p>
+<pre><code>sudo ./kubelet --api-servers=127.0.0.1:8080
+</code></pre>
+<p>Et vérifier que le nœud est maintenant connu de l'<code>apiserver</code>
+en relançant l'appel à l'API nodes.</p>
+<h3 id="lancementdunpodautraversdelapiserver">Lancement d'un Pod au travers de l'API server</h3>
+<p>Remplacer dans le fichier JSON <code>nginx.json</code> suivant, <code>$$ma_machine$$</code> par le nom
+de la machine hôte obtenu avec l'appel à l'API hosts :</p>
+<pre><code>{
+  "apiVersion": "v1",
+  "kind": "Pod",
+  "metadata": {
+    "name": "nginx"
+  },
+  "spec": {
+    "nodeName": "$$ma_machine$$",
+    "containers": [
+      {
+        "name": "nginx",
+        "image": "nginx",
+        "ports": [
+          {
+            "containerPort": 80
+          }
+        ],
+        "volumeMounts": [
+          {
+            "mountPath": "/var/log/nginx",
+            "name": "nginx-logs"
+          }
+        ]
+      },
+      {
+        "name": "log-truncator",
+        "image": "busybox",
+        "command": [
+          "/bin/sh"
+        ],
+        "args": [
+          "-c",
+          "while true; do cat /dev/null &gt; /logdir/access.log; sleep 10; done"
+        ],
+        "volumeMounts": [
+          {
+            "mountPath": "/logdir",
+            "name": "nginx-logs"
+          }
+        ]
+      }
+    ],
+    "volumes": [
+      {
+        "name": "nginx-logs",
+        "emptyDir": {
+        }
+      }
+    ]
+  }
+}
+</code></pre>
+<p>On peut remarquer que le contenu du fichier est strictement le même
+que le Pod précédent, les seules différences sont qu'il est au format JSON pour
+pouvoir être consommé directement par l'apiserver avec un appel CURL
+et que le champ <code>nodeName</code> indique sur quelle machine hôte le Pod doit être lancé.
+Ce champ supplémentaire est obligatoire pour que le service <code>kubelet</code> trouve
+les conteneurs qui lui sont affectés.</p>
+<p>Le démarrage du Pod est effectué en enregistrant ses informations dans l'apiserver :</p>
+<pre><code>curl \
+  -X POST http://localhost:8080/api/v1/namespaces/default/pods \
+  -H 'Content-Type: application/json' \
+  -d @nginx.json
+</code></pre>
+<p>Le statut du Pod peut être vérifié avec l'appel à API suivant :</p>
+<pre><code>curl http://localhost:8080/api/v1/namespaces/default/pods/nginx
+</code></pre>
+<p>Comme on s'en doute déjà, le pod peut être supprimé avec l'appel suivant :</p>
+<pre><code>curl -X DELETE http://localhost:8080/api/v1/namespaces/default/pods/nginx
 </code></pre>
 <h2 id="kubectl">Kubectl</h2>
+<p>La commande <code>kubectl</code> permet de simplifier l'utilisation de l'API REST,
+en fournissant à l'utilisateur les fonctionnalité de l'api sous forme de mot clés :</p>
+<ul>
+<li><code>get</code></li>
+<li><code>create</code></li>
+<li><code>delete</code></li>
+<li>etc.</li>
+</ul>
+<p>Télécharger le binaire de <code>kubectl</code> :</p>
+<pre><code>wget https://storage.googleapis.com/kubernetes-release/release/v1.7.6/bin/linux/amd64/kubectl
+chmod +x kubectl
+</code></pre>
+<p>et tester la commande :</p>
+<pre><code>./kubectl get nodes
+</code></pre>
+<p>on peut maintenant créer un pod directement au format YAML avec le même fichier
+utiliser dans le mode standalone :</p>
+<pre><code>./kubectl create -f nginx.yml
+</code></pre>
+<p>Il faut bien évidemment ajouter le champ <code>nodeName</code> pour que le Pod soit effectivement
+démarrer sur une machine hôte.</p>
 <h2 id="scheduler">Scheduler</h2>
+<p>L'affectation manuelle des Pods au nœuds, même si elle est possible, est rare.
+C'est le travail du programme <code>kube-scheduler</code> qui comme sont noms l'indique
+permet d'affecter un nouveau pod à un nœud, en respectant en plus des contraintes
+(répartition de charge, propriétés du nœud, etc.) </p>
+<p>Télécharger le binaire de <code>kube-scheduler</code> :</p>
+<pre><code>wget https://storage.googleapis.com/kubernetes-release/release/v1.7.6/bin/linux/amd64/kube-scheduler
+chmod +x kube-scheduler
+</code></pre>
+<p>Démarrage de <code>kube-scheduler</code> :</p>
+<pre><code>./kube-scheduler --master=http://localhost:8080
+</code></pre>
+<p>Recréer le pod mais cette fois sans le champs <code>nodeName</code> :</p>
+<pre><code>./kubectl create -f nginx.yml
+</code></pre>
+<p>Dans l'ordre les opérations sont :</p>
+<ul>
+<li><code>kubectl</code> enregistre le pod dans l'API server</li>
+<li><code>kube-scheduler</code> trouve un pod non affecté et lui attribut le (seul) nœud</li>
+<li><code>kubelet</code> trouve un pod qui lui est attribué mais non démarré localement,
+il démarre alors une instance du pod.</li>
+</ul>
+<h1 id="conclusion">Conclusion</h1>
+<p>L'ensemble des fonctionnalité de Kubernetes fonctionne sur le même principe :</p>
+<ul>
+<li>des objets sont enregistrés dans l'API (Pod, Service, ServiceAccount, etc.
+il en existe des dizaines)</li>
+<li>des contrôleurs inspectent l'état de ces objets et :</li>
+<li>soit modifient ou complètent leurs propriétés comme dans le cas du scheduler</li>
+<li>soit synchronisent l'état désiré de l'objet avec une resource système
+(conteneurs, DNS, routage réseau, etc.).</li>
+</ul>
+<p>Les différents services sont conçus pour offrir une robustesse de fonctionnement :
+par exemple si un nœud tombe en panne, l'ensemble des conteneurs qui lui sont
+affectés est redistribué sur les autres nœuds.</p>
 <h1 id="sources">Sources</h1>
 <ul>
 <li><p><a href="https://jvns.ca/blog/2017/06/04/learning-about-kubernetes/">Kubernetes High Level Overview</a></p></li>
