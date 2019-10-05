@@ -25,7 +25,7 @@ On peut voir l'ensemble des conteneurs en cours d'exécution avec la commande :
 
 Évidement aucun conteneur n'est en cours d'exécution, mais même une fois
 terminé un conteneur n'est pas automatiquement effacé. La commande suivante
-permet de lister l'ensemble des conteneurs peut importe leur état :
+permet de lister l'ensemble des conteneurs peu importe leur état :
 ```
 % docker ps -a
 ```
@@ -39,11 +39,11 @@ On peut nommer le conteneur au lancement avec l'option `--name` :
 % docker run --name mon_hello hello-world
 ```
 
-Vérifier que le nom du conteneur est bien pris en compte.
-Essayer de relancer un conteneur avec le même nom. Est ce possible ?
+Vérifiez que le nom du conteneur est bien pris en compte.
+Essayez de relancer un conteneur avec le même nom. Est-ce possible ?
 
 Les conteneurs morts commencent à s'accumuler, pour supprimer
-un ou plusieurs conteneurs, utiliser la commande suivante :
+un ou plusieurs conteneurs, utilisez la commande suivante :
 ```
 % docker rm $NOM_DU_CONTENEUR $ID_DU_CONTENEUR
 ```
@@ -54,13 +54,13 @@ fin de son exécution en utilisant l'option `--rm` au lancement :
 % docker run --rm hello-world
 ```
 
-Vérifier que le conteur est bien supprimé automatiquement.
+Vérifiez que le conteur est bien supprimé automatiquement.
 
 ## Interagir avec un conteneur
 
 L'image `hello-world` est certainement incontournable pour faire
-ses premiers pas mais on a rapidement fait le tour. L'image `busybox`
-est une micro distribution contenant quelques utilitaires standards unix
+ses premiers pas mais on en généralement a rapidement fait le tour. L'image `busybox`
+est une micro-distribution contenant quelques utilitaires standards unix
 dont un shell.
 
 ```
@@ -70,9 +70,9 @@ dont un shell.
 Est-ce que l'exécution produit quelque chose ? Quelle est la commande
 lancée dans le conteneur ?
 
-Habituellement lorsque l'on lance un shell il attend que l'on tape
+Habituellement lorsque l'on lance un shell ce dernier attend que la saisie
 des commandes. Mais par défaut Docker ferme l'entrée standard du processus
-lancé. Pour autoriser le processus a recevoir des entrées il faut utiliser 
+lancé. Pour autoriser le processus à recevoir des entrées il faut utiliser 
 l'option `-i` :
 ```
 % docker run -i --rm busybox
@@ -83,7 +83,7 @@ et de terminer la session avec `exit` ou `CTRL-D`.
 
 On remarquera que ce shell se comporte de façon étrange : il n'y a pas
 de prompt et `CTRL-C` n'annule pas la commande en cours. Pour fonctionner
-de façon nominale en mode interactif un shell à besoin d'une entrée standard
+de façon nominale en mode interactif un shell a besoin d'une entrée standard
 de type terminal (le terminal permet des fonctions supplémentaires comme
 effacer l'écran, déplacer le curseur, etc.). 
 
@@ -91,7 +91,7 @@ L'entrée standard est passée en mode terminal avec l'option `-t` :
 ```
 % docker run -it --rm busybox
 ```
-Vérifier que le shell affiche maintenant un prompt.
+Vérifiez que le shell affiche maintenant un prompt.
 
 Il est possible de modifier le programme de démarrage du conteneur
 en l'ajoutant après le nom de l'image :
@@ -103,14 +103,14 @@ en l'ajoutant après le nom de l'image :
 
 Le lancement en mode interactif d'un conteneur n'est pas le seul mode de
 fonctionnement. Le principal mode de fonctionnement est le fonctionnement
-en mode *daemon*, c'est à dire que une fois lancé le conteneur rend 
+en mode *daemon*, c'est à dire qu'une fois lancé le conteneur rend 
 immédiatement la main mais continu de s'exécuter en tâche de fond.
 Un conteneur en mode *daemon* se lance avec l'option `-d` :
 ```
 % docker run -d nginx
 ```
 
-Vérifier que le conteneur est en cour d'exécution avec la commande `ps`.
+Vérifiez que le conteneur est en cour d'exécution avec la commande `ps`.
 
 Le conteneur peut être stoppé ou démarré avec les commandes `stop` et
 `start` respectivement.
@@ -143,10 +143,10 @@ On peut maintenant accéder au service à l'URL suivante :
 
 Comme dit précédemment l'adresse IP du conteneur est uniquement
 accessible depuis la machine hôte. Docker permet de lier
-un port de la machine hôte avec un port du conteneur, le service
-devient accessible depuis partout où la machine hôte est accessible
-mais sur le port associé à la machine hôte. Cette opération d'association
-se fait avec l'option `-p` :
+un port de la machine hôte avec un port du conteneur, le service 
+devient accessible depuis tout endroit où la machine hôte est accessible, 
+mais uniquement via le port associé à la machine hôte. 
+Cette opération d'association se fait avec l'option `-p` :
 
 ```
 % docker run -d -p 8080:80 nginx
@@ -159,8 +159,8 @@ curl http://${ADRESSE_IP_HOTE}:8080/
 ```
 ### Montage de volumes externes
 
-La page HTML servit est une page par défaut, on aimerait la modifier
-pour servir un contenu avec plus de valeurs ajoutées.
+La page HTML servie est une page par défaut, on aimerait la modifier
+pour servir un contenu présentant plus de valeurs ajoutées.
 La technique la plus simple
 pour le faire est de rendre visible un répertoire de la machine hôte
 dans le conteneur à un point de montage défini (on pourrait également
@@ -175,7 +175,7 @@ Il serait intéressant de pouvoir observer la configuration de nginx
 
 Pour cela Docker nous donne la possibilité d'exécuter une commande à
 l'intérieur d'un conteneur existant, cette commande pouvant elle-même
-être interactive comme un shell. Le lancement d'une commande à intérieur
+être interactive comme un shell. Le lancement d'une commande à l'intérieur
 d'un conteneur existant se fait avec la commande `exec` :
 
 ```
@@ -186,14 +186,14 @@ On peut maintenant se balader dans le système de fichiers du conteneur
 et inspecter les fichiers de configuration tels que 
 `/etc/nginx/conf.d/default.conf`.
 
-Trouver le répertoire contenant le site Web. Il est maintenant possible
+Trouvez le répertoire contenant le site Web. Il est maintenant possible
 de lancer le conteneur avec ce répertoire remplacé par un répertoire
-local à la machine hôte (utiliser le contenu de cette [archive](data/web.tar.gz)):
+local à la machine hôte (utilisez le contenu de cette [archive](data/web.tar.gz)):
 ```
 % docker run -d -p 8080:80 -v $PWD/web:${WEB_NGINX} nginx
 ```
 
-Vérifier que le contenu servi est bien le nouveau site Web.
+Vérifiez que le contenu servi est bien le nouveau site Web.
 
 Bien que le conteneur soit lancé en mode daemon, il est possible
 de voir l'activité dans le conteneur sans rentrer dedans en visualisant les 
@@ -202,7 +202,7 @@ logs générés sur la sortie standard par nginx :
 % docker logs ${ID_OU_NOM}
 ```
 
-Regarder à chaque requête Web l'évolution du log.
+Regardez à chaque requête Web l'évolution du log.
 
 ### Modification de variables d'environnement
 
